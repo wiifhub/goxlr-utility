@@ -21,6 +21,7 @@ use goxlr_types::{ChannelName, DeviceType, FaderName, InputDevice, MicrophoneTyp
 use interprocess::local_socket::tokio::prelude::LocalSocketStream;
 use interprocess::local_socket::traits::tokio::Stream;
 use interprocess::local_socket::{GenericFilePath, GenericNamespaced, ToFsName, ToNsName};
+use std::time::{Duration, Instant};
 use strum::IntoEnumIterator;
 
 static SOCKET_PATH: &str = "/tmp/goxlr.socket";
@@ -93,6 +94,15 @@ pub async fn run_cli() -> Result<()> {
         Some(command) => {
             match command {
                 SubCommands::Microphone { command } => match command {
+                    MicrophoneCommands::LevelTest { duration, interval } => {
+                        run_microphone_level_test(
+                            &mut client,
+                            &serial,
+                            Duration::from_secs(*duration),
+                            Duration::from_millis(*interval),
+                        )
+                        .await?;
+                    }
                     MicrophoneCommands::Equaliser { command } => match command {
                         EqualiserCommands::Frequency { frequency, value } => {
                             client
@@ -1085,6 +1095,120 @@ pub async fn run_cli() -> Result<()> {
     }
 
     Ok(())
+}
+
+async fn run_microphone_level_test(
+    client: &mut Box<dyn Client>,
+    serial: &str,
+    duration: Duration,
+    interval: Duration,
+) -> Result<()> {
+    println!(
+        "Mic Lab: speak normally for {} second{}...",
+        duration.as_secs(),
+        if duration.as_secs() == 1 { "" } else { "s" }
+    );
+
+    let started = Instant::now();
+    let mut levels = Vec::new();
+    while started.elapsed() < duration {
+        levels.push(client.mic_level(serial).await?);
+        tokio::time::sleep(interval).await;
+    }
+
+    if levels.is_empty() {
+        bail!("Mic Lab did not receive any microphone level samples");
+    }
+
+    let result = analyse_microphone_levels(levels).unwrap();
+
+    println!("\nMic Lab results ({} samples)", result.sample_count);
+    println!("  Noise floor (P10): {:>6.1} dBFS", result.noise_floor);
+    println!("  Median level:      {:>6.1} dBFS", result.median);
+    println!("  Speech peak (P95): {:>6.1} dBFS", result.speech_peak);
+    println!("  Maximum sample:    {:>6.1} dBFS", result.maximum);
+    println!("  Dynamic range:     {:>6.1} dB", result.dynamic_range);
+    println!("  Near-clipping:     {} samples", result.clipping_samples);
+    println!("\nRecommendation: {}", result.recommendation());
+    Ok(())
+}
+
+#[derive(Debug)]
+struct MicLabResult {
+    sample_count: usize,
+    noise_floor: f64,
+    median: f64,
+    speech_peak: f64,
+    maximum: f64,
+    dynamic_range: f64,
+    clipping_samples: usize,
+}
+
+impl MicLabResult {
+    fn recommendation(&self) -> &'static str {
+        // Require repeated near-clipping readings. Some GoXLR devices occasionally return one
+        // isolated 0 dBFS meter value while otherwise silent.
+        if self.clipping_samples >= 3 || self.speech_peak > -3.0 {
+            "Reduce microphone gain: peaks are too close to clipping."
+        } else if self.speech_peak < -18.0 {
+            "Increase microphone gain: normal speech is too quiet."
+        } else if self.noise_floor > -35.0 {
+            "Peak level is usable, but the noise floor is high; check room noise and gate settings."
+        } else {
+            "Levels look healthy for voice use."
+        }
+    }
+}
+
+fn analyse_microphone_levels(mut levels: Vec<f64>) -> Option<MicLabResult> {
+    if levels.is_empty() {
+        return None;
+    }
+
+    let clipping_samples = levels.iter().filter(|level| **level >= -0.5).count();
+    levels.sort_by(f64::total_cmp);
+    let percentile = |fraction: f64| -> f64 {
+        let index = ((levels.len() - 1) as f64 * fraction).round() as usize;
+        levels[index]
+    };
+    let noise_floor = percentile(0.10);
+    let speech_peak = percentile(0.95);
+
+    Some(MicLabResult {
+        sample_count: levels.len(),
+        noise_floor,
+        median: percentile(0.50),
+        speech_peak,
+        maximum: *levels.last().unwrap(),
+        dynamic_range: speech_peak - noise_floor,
+        clipping_samples,
+    })
+}
+
+#[cfg(test)]
+mod mic_lab_tests {
+    use super::*;
+
+    #[test]
+    fn ignores_one_isolated_zero_dbfs_meter_spike() {
+        let mut levels = vec![-72.2; 39];
+        levels.push(0.0);
+        let result = analyse_microphone_levels(levels).unwrap();
+
+        assert_eq!(result.speech_peak, -72.2);
+        assert_eq!(result.clipping_samples, 1);
+        assert!(result.recommendation().starts_with("Increase"));
+    }
+
+    #[test]
+    fn identifies_healthy_voice_levels() {
+        let mut levels = vec![-55.0; 20];
+        levels.extend(vec![-12.0; 80]);
+        let result = analyse_microphone_levels(levels).unwrap();
+
+        assert_eq!(result.speech_peak, -12.0);
+        assert!(result.recommendation().starts_with("Levels look healthy"));
+    }
 }
 
 fn print_device(device: &MixerStatus) {

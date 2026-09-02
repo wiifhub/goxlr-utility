@@ -42,6 +42,7 @@ use crate::mic_profile::{DEFAULT_MIC_PROFILE_NAME, MicProfileAdapter};
 use crate::profile::{
     DEFAULT_PROFILE_NAME, ProfileAdapter, usb_to_standard_button, version_newer_or_equal_to,
 };
+use crate::snapshots::{SnapshotKind, create_profile_snapshot};
 
 pub struct Device<'a> {
     goxlr: Box<dyn FullGoXLRDevice>,
@@ -442,6 +443,17 @@ impl<'a> Device<'a> {
 
     pub fn profile(&self) -> &ProfileAdapter {
         &self.profile
+    }
+
+    async fn snapshot_profile(&self, name: &str, kind: SnapshotKind, reason: &str) {
+        let source = match kind {
+            SnapshotKind::Device => self.settings.get_profile_directory().await,
+            SnapshotKind::Microphone => self.settings.get_mic_profile_directory().await,
+        };
+        let backups = self.settings.get_backup_directory().await;
+        if let Err(error) = create_profile_snapshot(&source, &backups, name, kind, reason) {
+            warn!("Unable to create versioned profile snapshot: {error:#}");
+        }
     }
 
     pub fn mic_profile(&self) -> &MicProfileAdapter {
@@ -2666,6 +2678,11 @@ impl<'a> Device<'a> {
                 self.stop_all_samples(true, true).await?;
                 let volumes = self.profile.get_current_state();
 
+                if save_change {
+                    self.snapshot_profile(self.profile.name(), SnapshotKind::Device, "before-load")
+                        .await;
+                }
+
                 // Grab the needed Paths..
                 let profile_path = self.settings.get_profile_directory().await;
                 let backup_path = self.settings.get_backup_directory().await;
@@ -2731,6 +2748,8 @@ impl<'a> Device<'a> {
             }
             GoXLRCommand::SaveProfile() => {
                 let profile_directory = self.settings.get_profile_directory().await;
+                self.snapshot_profile(self.profile.name(), SnapshotKind::Device, "before-save")
+                    .await;
                 self.profile.save(&profile_directory, true)?;
             }
             GoXLRCommand::SaveProfileAs(profile_name) => {
@@ -2754,6 +2773,8 @@ impl<'a> Device<'a> {
 
                 let profiles = self.settings.get_profile_directory().await;
                 let backups = self.settings.get_backup_directory().await;
+                self.snapshot_profile(&name, SnapshotKind::Device, "before-delete")
+                    .await;
                 self.profile.delete_profile(name.clone(), &profiles)?;
                 self.profile.delete_profile(name.clone(), &backups)?;
             }
@@ -2786,6 +2807,15 @@ impl<'a> Device<'a> {
                 self.settings.save().await;
             }
             GoXLRCommand::LoadMicProfile(name, persist) => {
+                if persist {
+                    self.snapshot_profile(
+                        self.mic_profile.name(),
+                        SnapshotKind::Microphone,
+                        "before-load",
+                    )
+                    .await;
+                }
+
                 // Grab the needed Paths..
                 let path = self.settings.get_mic_profile_directory().await;
                 let backup = self.settings.get_backup_directory().await;
@@ -2818,7 +2848,7 @@ impl<'a> Device<'a> {
                                 self.mic_profile = profile;
 
                                 debug!("Overwriting existing corrupt profile..");
-                                self.profile.save(&path, true)?;
+                                self.mic_profile.save(&path, true)?;
                             }
                             Err(e) => {
                                 bail!("Failed to Load backup profile: {}", e);
@@ -2837,6 +2867,12 @@ impl<'a> Device<'a> {
             }
             GoXLRCommand::SaveMicProfile() => {
                 let mic_profile_directory = self.settings.get_mic_profile_directory().await;
+                self.snapshot_profile(
+                    self.mic_profile.name(),
+                    SnapshotKind::Microphone,
+                    "before-save",
+                )
+                .await;
                 self.mic_profile.save(&mic_profile_directory, true)?;
             }
             GoXLRCommand::SaveMicProfileAs(name) => {
@@ -2858,6 +2894,8 @@ impl<'a> Device<'a> {
                 }
 
                 let profile_directory = self.settings.get_mic_profile_directory().await;
+                self.snapshot_profile(&profile_name, SnapshotKind::Microphone, "before-delete")
+                    .await;
                 self.mic_profile
                     .delete_profile(profile_name.clone(), &profile_directory)?;
             }

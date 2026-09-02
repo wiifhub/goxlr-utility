@@ -19,21 +19,24 @@ impl IPCClient {
             http_settings: Default::default(),
         }
     }
+
+    async fn request(&mut self, request: DaemonRequest) -> Result<DaemonResponse> {
+        self.socket
+            .send(request)
+            .await
+            .context("Failed to send a command to the GoXLR daemon process")?;
+        self.socket
+            .read()
+            .await
+            .context("Failed to retrieve the command result from the GoXLR daemon process")?
+            .context("Failed to parse the command result from the GoXLR daemon process")
+    }
 }
 
 #[async_trait]
 impl Client for IPCClient {
     async fn send(&mut self, request: DaemonRequest) -> Result<()> {
-        self.socket
-            .send(request)
-            .await
-            .context("Failed to send a command to the GoXLR daemon process")?;
-        let result = self
-            .socket
-            .read()
-            .await
-            .context("Failed to retrieve the command result from the GoXLR daemon process")?
-            .context("Failed to parse the command result from the GoXLR daemon process")?;
+        let result = self.request(request).await?;
 
         match result {
             DaemonResponse::Status(status) => {
@@ -54,6 +57,17 @@ impl Client for IPCClient {
 
     async fn poll_status(&mut self) -> Result<()> {
         self.send(DaemonRequest::GetStatus).await
+    }
+
+    async fn mic_level(&mut self, serial: &str) -> Result<f64> {
+        match self
+            .request(DaemonRequest::GetMicLevel(serial.to_string()))
+            .await?
+        {
+            DaemonResponse::MicLevel(level) => Ok(level),
+            DaemonResponse::Error(error) => Err(anyhow!(error)),
+            response => bail!("Unexpected microphone level response: {response:?}"),
+        }
     }
 
     async fn command(&mut self, serial: &str, command: GoXLRCommand) -> Result<()> {

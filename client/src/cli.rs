@@ -267,6 +267,17 @@ pub enum ProfileAction {
 #[derive(Subcommand, Debug)]
 #[command(arg_required_else_help = true)]
 pub enum MicrophoneCommands {
+    /// Run a timed microphone level test and report useful gain statistics.
+    LevelTest {
+        /// Length of the test in seconds [1 - 60]. Speak normally during the test.
+        #[arg(long, default_value_t = 10, value_parser = clap::value_parser!(u64).range(1..=60))]
+        duration: u64,
+
+        /// Delay between level samples in milliseconds [20 - 1000].
+        #[arg(long, default_value_t = 50, value_parser = clap::value_parser!(u64).range(20..=1000))]
+        interval: u64,
+    },
+
     /// Configure the Equaliser for the Full GoXLR Device
     Equaliser {
         #[command(subcommand)]

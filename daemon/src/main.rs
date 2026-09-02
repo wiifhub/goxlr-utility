@@ -42,6 +42,7 @@ use crate::tts::spawn_tts_service;
 mod audio;
 mod cli;
 mod device;
+mod diagnostics;
 mod events;
 mod files;
 mod firmware;
@@ -52,6 +53,7 @@ mod profile;
 mod servers;
 mod settings;
 mod shutdown;
+mod snapshots;
 mod tray;
 mod tts;
 
@@ -103,7 +105,17 @@ async fn main() -> Result<()> {
     // error up to the user on Windows.
     if let Err(e) = run_utility().await {
         let args: Cli = Cli::parse();
-        let settings = SettingsHandle::load(args.config).await?;
+        let config_path = args.config.clone();
+        let settings = match SettingsHandle::load(args.config).await {
+            Ok(settings) => settings,
+            Err(settings_error) => {
+                platform::display_error(format!(
+                    "Error Starting the GoXLR Utility:\r\n\r\n{e}\r\n\r\nThe settings file could not be loaded from:\r\n{}\r\n\r\n{settings_error}",
+                    config_path.display()
+                ));
+                process::exit(1);
+            }
+        };
 
         if settings.get_log_level().await != LogLevel::Debug {
             info!("Setting Log Level to Debug for next run..");
@@ -111,8 +123,21 @@ async fn main() -> Result<()> {
             settings.save().await;
         }
 
+        let report = diagnostics::write_startup_report(&settings, &e).await;
+        let report_message = match report {
+            Ok(path) => format!(
+                "\r\n\r\nA diagnostic report was saved to:\r\n{}",
+                path.display()
+            ),
+            Err(report_error) => {
+                format!("\r\n\r\nThe diagnostic report could not be written:\r\n{report_error}")
+            }
+        };
+
         // Message is Cross-Platform now :)
-        let message = format!("Error Starting the GoXLR Utility:\r\n\r\n{e}");
+        let message = format!(
+            "Error Starting the GoXLR Utility:\r\n\r\n{e}{report_message}\r\n\r\nThe next launch will use Debug logging."
+        );
         platform::display_error(message);
 
         // Kill the process with an error to ensure the entire runtime is stopped

@@ -18,18 +18,23 @@ impl WebClient {
             http_settings: Default::default(),
         }
     }
+
+    async fn request(&self, request: DaemonRequest) -> anyhow::Result<DaemonResponse> {
+        Ok(reqwest::Client::new()
+            .post(&self.url)
+            .json(&request)
+            .send()
+            .await?
+            .error_for_status()?
+            .json::<DaemonResponse>()
+            .await?)
+    }
 }
 
 #[async_trait]
 impl Client for WebClient {
     async fn send(&mut self, request: DaemonRequest) -> anyhow::Result<()> {
-        let resp = reqwest::Client::new()
-            .post(&self.url)
-            .json(&request)
-            .send()
-            .await?
-            .json::<DaemonResponse>()
-            .await?;
+        let resp = self.request(request).await?;
 
         // Should probably abstract this part, it's common between clients..
         match resp {
@@ -51,6 +56,17 @@ impl Client for WebClient {
 
     async fn poll_status(&mut self) -> anyhow::Result<()> {
         self.send(DaemonRequest::GetStatus).await
+    }
+
+    async fn mic_level(&mut self, serial: &str) -> anyhow::Result<f64> {
+        match self
+            .request(DaemonRequest::GetMicLevel(serial.to_string()))
+            .await?
+        {
+            DaemonResponse::MicLevel(level) => Ok(level),
+            DaemonResponse::Error(error) => bail!("{}", error),
+            response => bail!("Unexpected microphone level response: {response:?}"),
+        }
     }
 
     async fn command(&mut self, serial: &str, command: GoXLRCommand) -> anyhow::Result<()> {

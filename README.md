@@ -20,6 +20,21 @@ Windows. [Click Here](https://discord.gg/BRBjkkbvmZ) to join our discord!
 * Streamdeck Integration (
   through [The StreamDeck Repository](https://github.com/FrostyCoolSlug/goxlr-utility-streamdeck))
 
+### Wiifhub Utility Plus additions
+
+This fork adds several safety and troubleshooting features on top of the upstream utility:
+
+* **Mic Lab level test** — samples the GoXLR's processed microphone meter and reports noise floor,
+  median level, speech peak, dynamic range, clipping risk, and a gain recommendation. Run
+  `goxlr-client microphone level-test` while speaking normally for the default ten seconds.
+* **Versioned profile snapshots** — before loading, saving, or deleting an existing device or
+  microphone profile, a timestamped copy is preserved under the configured
+  `backups/snapshots` directory. The latest 20 versions of each profile are retained.
+* **Persistent startup diagnostics** — startup failures now create a privacy-conscious report in
+  the configured logs directory and show its exact location in the error dialog.
+* **Safer mic-profile recovery** — fixes recovery incorrectly writing the main device profile when
+  restoring a damaged microphone profile.
+
 ## Downloads
 
 Downloads are available on the [Releases Page](https://github.com/GoXLR-on-Linux/goxlr-utility/releases/latest) under
