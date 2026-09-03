@@ -1,9 +1,11 @@
 # Embedded UI source
 
-The web interface bundled in `daemon/web-content` is built from:
+The web interface bundled in `daemon/web-content` is built from this repository:
 
-- Repository: https://github.com/wiifhub/goxlr-ui
-- Source commit: `f83e20de9be15443680085d661e711af7bd73b94`
-- Build command: `npm ci && npm run build`
+- Source directory: `ui/`
+- Build commands: `cd ui`, `npm ci`, then `npm run build`
+- Generated output: `ui/dist/`
+- Embedded output: `daemon/web-content/`
 
-The source repository preserves the upstream project as `upstream` and contains the Broadcast Control Surface design specification in `DESIGN.md`.
+The Broadcast Control Surface specification lives in `ui/DESIGN.md`. The source was originally based on
+`GoXLR-on-Linux/goxlr-ui`; its MIT license is retained in `ui/LICENSE`.

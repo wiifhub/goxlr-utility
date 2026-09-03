@@ -34,10 +34,14 @@ This fork adds several safety and troubleshooting features on top of the upstrea
   the configured logs directory and show its exact location in the error dialog.
 * **Safer mic-profile recovery** — fixes recovery incorrectly writing the main device profile when
   restoring a damaged microphone profile.
+* **Broadcast Control Surface UI** — adds a responsive dark studio-console layout, clearer faders,
+  live device/profile status, accessible focus states, and a correctly scaled hardware preview.
+* **Single-repository UI source** — the editable Vue/Vite application now lives in [`ui/`](ui),
+  alongside the Rust daemon that embeds its production build.
 
 ## Downloads
 
-Downloads are available on the [Releases Page](https://github.com/GoXLR-on-Linux/goxlr-utility/releases/latest) under
+Wiifhub Utility Plus downloads are available on the [Releases Page](https://github.com/wiifhub/goxlr-utility/releases/latest) under
 the
 'Assets' header, we currently provide the following files:
 
@@ -97,15 +101,14 @@ Gate Amount to 0, then reconfigure it once your mic is working. Once done, go ex
 The Utility's UI is web based and served directly from the utility to your web browser of choice (if configured, it
 can also be served to a web browser on another computer). The Utility also provides an 'Application' which wraps the
 web UI into a dedicated app. If you're using the Utility on Windows this option is presented to you during install.
-The UI design was modelled around the official application in an attempt to provide a familiar interface for those
-moving from Windows to other platforms, rather than forcing people to learn a new configuration paradigm.
+The Utility Plus interface uses a responsive Broadcast Control Surface while preserving the familiar GoXLR control
+model and existing device behavior.
 
 ![image](https://github.com/GoXLR-on-Linux/goxlr-utility/assets/574943/8f14bd2c-e67a-42e5-bd9f-b3cb367e171d)
 
-If you're running on Linux, the 'Application' isn't provided as part of the base utility installation. If you'd
-prefer to use it, check out the [GoXLR UI Repository](https://github.com/frostyCoolSlug/goxlr-utility-ui/), which
-provides various builds for distributions. Once installed, you should be able to go to System -> Utility Settings
-and change the UI Handler there.
+The complete editable interface is maintained in this repository under [`ui/`](ui). Run `npm ci` and
+`npm run build` from that directory to produce `ui/dist`; the release build is copied into
+[`daemon/web-content`](daemon/web-content) for embedding in the daemon.
 
 ## Building
 

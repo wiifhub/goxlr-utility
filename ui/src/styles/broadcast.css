@@ -1,0 +1,320 @@
+:root {
+  --surface-canvas: #090d12;
+  --surface-sidebar: #0d131a;
+  --surface-content: #111820;
+  --surface-panel: #151e27;
+  --surface-raised: #1a252f;
+  --surface-hover: #202d38;
+  --border-subtle: #263543;
+  --border-strong: #344858;
+  --text-primary: #f3f7fa;
+  --text-secondary: #a9bac7;
+  --text-muted: #738491;
+  --accent: #57c6ce;
+  --accent-muted: rgba(87, 198, 206, 0.11);
+  --accent-border: rgba(87, 198, 206, 0.42);
+  --warning: #e4a94c;
+  --danger: #ef5a67;
+  --success: #56c991;
+  --radius-panel: 10px;
+  --radius-control: 6px;
+  --shadow-panel: 0 18px 50px rgba(0, 0, 0, 0.22);
+  --motion-fast: 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--surface-canvas);
+}
+
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 80% -20%, rgba(71, 119, 154, 0.16), transparent 38rem),
+    var(--surface-canvas);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button,
+input:not([type="range"]),
+select {
+  min-height: 36px;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent) !important;
+  outline-offset: 2px;
+}
+
+.broadcast-console {
+  width: min(1760px, 100%);
+  margin-inline: auto;
+  padding: 12px;
+}
+
+.console-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 58px;
+  margin-bottom: 12px;
+  padding: 8px 16px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  background: rgba(13, 19, 26, 0.92);
+}
+
+.console-brand,
+.console-status {
+  display: flex;
+  align-items: center;
+}
+
+.console-brand {
+  gap: 10px;
+  letter-spacing: 0.05em;
+}
+
+.console-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--accent-border);
+  border-radius: 7px;
+  color: var(--accent);
+  background: var(--accent-muted);
+  font-family: LeagueMono, monospace;
+  font-weight: 700;
+}
+
+.console-brand strong,
+.console-brand small {
+  display: block;
+}
+
+.console-brand strong {
+  font: 700 16px/1 LeagueMono, monospace;
+}
+
+.console-brand small {
+  margin-top: 5px;
+  color: var(--text-muted);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+}
+
+.console-status {
+  gap: 9px;
+  color: var(--text-secondary);
+  font: 12px/1 LeagueMono, monospace;
+  letter-spacing: 0.06em;
+}
+
+.status-light {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 10px rgba(86, 201, 145, 0.7);
+}
+
+.status-divider {
+  width: 1px;
+  height: 18px;
+  margin-inline: 4px;
+  background: var(--border-strong);
+}
+
+.console-overview {
+  display: grid;
+  grid-template-columns: minmax(340px, 0.78fr) minmax(430px, 1.22fr);
+  grid-auto-rows: 445px;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.console-panel,
+.console-workspace {
+  min-width: 0;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-panel);
+  background: rgba(17, 24, 32, 0.96);
+  box-shadow: var(--shadow-panel);
+  overflow: hidden;
+}
+
+.panel-label {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  background: var(--surface-sidebar);
+  font: 11px/1 LeagueMono, monospace;
+  letter-spacing: 0.14em;
+}
+
+.profile-panel {
+  min-height: 292px;
+}
+
+.device-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 292px;
+}
+
+.device-visualiser {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  min-height: 0;
+  padding: 10px 24px;
+  overflow: hidden;
+}
+
+.device-visualiser #goxlr-visualiser {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100% !important;
+  min-height: 0;
+}
+
+.device-visualiser #goxlr-visualiser #GoXLR {
+  display: block;
+  width: auto !important;
+  height: 100% !important;
+  max-width: 100%;
+  max-height: 100%;
+  margin: auto;
+}
+
+.console-workspace {
+  min-height: 470px;
+}
+
+/* Existing components keep their behavior while inheriting the new material system. */
+.broadcast-console .tabs-details,
+.broadcast-console [class*="content"],
+.broadcast-console [class*="container"] {
+  border-color: var(--border-subtle);
+}
+
+.broadcast-console input[type="number"],
+.broadcast-console input[type="text"],
+.broadcast-console select,
+.broadcast-console textarea {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+}
+
+.profile-panel .tabs-details,
+.profile-panel .selectorList {
+  background: transparent !important;
+}
+
+.profile-panel .actionButton {
+  min-width: 0;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-control);
+  color: var(--text-secondary) !important;
+  background: var(--surface-raised) !important;
+}
+
+.profile-panel .actionButton:hover {
+  color: var(--text-primary) !important;
+  border-color: var(--accent-border) !important;
+  background: var(--surface-hover) !important;
+}
+
+.console-workspace .container {
+  background-color: transparent !important;
+}
+
+.console-workspace .container[role="region"] {
+  border: 1px solid var(--border-subtle);
+  border-radius: 8px;
+  background: var(--surface-panel) !important;
+}
+
+.console-workspace .sliderBox {
+  border-radius: 5px;
+  background-color: var(--surface-raised) !important;
+  overflow: hidden;
+}
+
+.console-workspace .sliderInput input {
+  color: var(--accent) !important;
+  background-color: rgba(9, 13, 18, 0.46) !important;
+}
+
+.broadcast-console button {
+  transition: color var(--motion-fast), background-color var(--motion-fast), border-color var(--motion-fast), transform var(--motion-fast);
+}
+
+.broadcast-console button:active {
+  transform: translateY(1px);
+}
+
+@media (max-width: 900px) {
+  .broadcast-console {
+    padding: 8px;
+  }
+
+  .console-overview {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+
+  .device-panel {
+    display: none;
+  }
+
+  .profile-panel {
+    min-height: 260px;
+  }
+}
+
+@media (max-width: 560px) {
+  .console-header {
+    align-items: flex-start;
+  }
+
+  .console-status {
+    align-self: center;
+  }
+
+  .console-status > span:not(.status-light) {
+    display: none;
+  }
+
+  .profile-panel .buttonColumns {
+    width: calc(100% - 20px);
+  }
+
+  .console-overview {
+    margin-bottom: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
